@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Job level, not step level: a step's own `env:` is not visible to that
+    # step's `if:`, so gating on it there silently never fires.
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check
+        run: npm run check
+
+      - name: Smoke-test the built bundle
+        run: npm run smoke
+
+      - name: Package
+        id: package
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          npx @vscode/vsce package --out "claude-multi-session-${version}.vsix"
+          echo "vsix=claude-multi-session-${version}.vsix" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the tag and the manifest disagree
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "${{ steps.package.outputs.version }}" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json ${{ steps.package.outputs.version }}" >&2
+            exit 1
+          fi
+
+      - name: GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes "${{ steps.package.outputs.vsix }}"
+
+      - name: Upload the VSIX as an artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-multi-session-${{ steps.package.outputs.version }}-vsix
+          path: ${{ steps.package.outputs.vsix }}
+
+      # Deliberately conditional: a missing token skips publishing with a note
+      # rather than failing a release that is otherwise fine.
+      - name: Publish to the Marketplace
+        if: env.VSCE_PAT != ''
+        run: npx @vscode/vsce publish --packagePath "${{ steps.package.outputs.vsix }}"
+
+      - name: Note when publishing was skipped
+        if: env.VSCE_PAT == ''
+        run: |
+          echo "::notice::VSCE_PAT is not set, so the Marketplace step was skipped. The VSIX is on the GitHub release. See docs/PUBLISHING.md."
