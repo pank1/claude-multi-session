@@ -3,7 +3,7 @@
   "displayName": "Claude Multi Session — usage, limits & account switching",
   "description": "Unofficial. See how much Claude quota you have left on the 5-hour and weekly windows and when each resets \u2014 and, with more than one Claude account, switch between them from the status bar.",
   "version": "0.1.0",
-  "publisher": "mikelp",
+  "publisher": "QuantLabs",
   "license": "MIT",
   "private": false,
   "engines": {

@@ -76,7 +76,7 @@ decapitate the conversation that invoked it.
 
 **D-11 — Name is "Claude Multi Session", with the job in the subtitle.**
 Display name "Claude Multi Session — usage, limits & account switching", extension id
-`claude-multi-session`, publisher `mikelp` — a person, not something that could be mistaken for
+`claude-multi-session`, publisher `QuantLabs` — a company of yours, not something that could be mistaken for
 Anthropic. The subtitle carries the work the extension actually does, because "session" in this
 corner of the Marketplace usually means a saved conversation, and this does not manage
 conversations. The README says plainly that it is unofficial and unaffiliated.

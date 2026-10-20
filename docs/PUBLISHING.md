@@ -43,7 +43,7 @@ Everything in the repository is ready to package. These steps need a human with 
 
 ## 1. Register the publisher — the only step nobody else can do
 
-`package.json` already says `"publisher": "mikelp"`. That id was checked as free on 2026-10-18
+`package.json` says `"publisher": "QuantLabs"`, which must match the publisher ID exactly as registered
 and **must be registered under exactly that spelling**, or the id in `package.json` has to
 change to match what you get.
 
@@ -56,8 +56,8 @@ create a publisher:
 
 | Field | Value |
 | --- | --- |
-| ID | `mikelp` |
-| Display name | Michael L-P |
+| ID | `QuantLabs` |
+| Display name | QuantLabs |
 
 Creating a publisher silently creates an Azure DevOps organisation behind it. That is normal.
 
@@ -74,7 +74,7 @@ In Azure DevOps (<https://dev.azure.com>), **User settings → Personal access t
 Then either keep it local:
 
 ```bash
-npx @vscode/vsce login mikelp     # paste the PAT
+npx @vscode/vsce login QuantLabs     # paste the PAT
 ```
 
 …or put it in the repository as a secret named `VSCE_PAT`, which is what the release workflow
