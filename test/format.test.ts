@@ -52,10 +52,9 @@ test('a cell states what the bar means and when it resets', () => {
   assert.match(cell, /3h00m/, 'the countdown to the reset is in the cell');
 });
 
-test('a cell with no reset time says nothing about one', () => {
+test('a cell with no reset time keeps the shape of one that has', () => {
   const cell = windowCell(window(25, null), NOW);
-  assert.match(cell, /25%/);
-  assert.equal(cell.includes('·'), false);
+  assert.match(cell, /25% · —$/, 'a dash holds the slot, so the column does not look a piece short');
 });
 
 test('a locked window says locked rather than a percentage', () => {

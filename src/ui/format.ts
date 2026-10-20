@@ -51,8 +51,10 @@ export function windowCell(usage: WindowUsage | undefined, now: Date, width = 8)
   if (!usage) return '—';
   if (usage.locked) return `${colouredBar(100, width)} locked`;
   const used = Math.round(usage.percentUsed);
-  const reset = usage.resetsAt ? ` · ${formatCountdown(msUntil(usage.resetsAt, now))}` : '';
-  return `${colouredBar(used, width)} ${used}%${reset}`;
+  // Every cell has the same shape, so a window with no reset time reported does
+  // not leave the column looking a piece short.
+  const reset = usage.resetsAt ? formatCountdown(msUntil(usage.resetsAt, now)) : '—';
+  return `${colouredBar(used, width)} ${used}% · ${reset}`;
 }
 
 /** Blocks per column. The week is the longer span, so it gets the longer bar. */

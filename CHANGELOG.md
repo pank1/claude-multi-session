@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- Every cell in the table has the same shape. A window with no reset time reported showed just
+  a bar and a percentage, leaving that column looking a piece shorter than its neighbour; it
+  now carries a dash in the slot.
+
 ## 0.2.2
 
 - The 5-hour bar is four blocks to the week's eight. Two eight-block bars of double-width emoji
