@@ -1,4 +1,6 @@
+import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { Controller } from '../controller';
@@ -27,7 +29,8 @@ export async function showDoctor(claudeMultiSession: Controller, version: string
   lines.push(`- ${process.platform} ${os.release()}, node ${process.versions.node}`);
   lines.push(`- Machine name used for sync: \`${settings.machineName}\``);
   lines.push(`- Claude config directory: \`${claudeDir()}\``);
-  lines.push(`- Claude Multi Session directory: \`${claudeMultiSessionDir()}\``);
+  lines.push(`- Claude Multi Session directory: \`${claudeMultiSessionDir()}\` — ${await writability(claudeMultiSessionDir())}`);
+  lines.push(`- Settings file writable: ${await settingsWritable()}`);
   lines.push('');
 
   lines.push('## Sign-in Claude Code is using', '');
@@ -185,4 +188,37 @@ export async function showDoctor(claudeMultiSession: Controller, version: string
 function describe(error: unknown): string {
   if (error instanceof ApiError) return `${error.kind} — ${error.message}`;
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Proves the directory can be written to, rather than assuming it. */
+async function writability(dir: string): Promise<string> {
+  const probe = path.join(dir, `.write-probe-${process.pid}`);
+  try {
+    await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+    await fs.writeFile(probe, 'probe', { mode: 0o600 });
+    await fs.rm(probe, { force: true });
+    return '**writable**';
+  } catch (error) {
+    return `**NOT WRITABLE** (${describe(error)})`;
+  }
+}
+
+/**
+ * Settings are written during sync setup, and VS Code refuses when settings.json
+ * has a syntax error. Reading it back as JSON is the cheapest way to know.
+ */
+async function settingsWritable(): Promise<string> {
+  const inspected = vscode.workspace
+    .getConfiguration()
+    .inspect<boolean>('claudeMultiSession.sync.enabled');
+  if (!inspected) return 'unknown';
+  try {
+    const current = inspected.globalValue;
+    await vscode.workspace
+      .getConfiguration()
+      .update('claudeMultiSession.sync.enabled', current, vscode.ConfigurationTarget.Global);
+    return '**yes**';
+  } catch (error) {
+    return `**no** — ${describe(error)}. Open settings.json and look for a syntax error.`;
+  }
 }

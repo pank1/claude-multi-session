@@ -71,9 +71,29 @@ export async function runSyncSetup(claudeMultiSession: Controller): Promise<void
       : await claudeMultiSession.passphrase.get('open the synced accounts');
   if (!passphrase) return;
 
-  await configuration.update('claudeMultiSession.sync.repository', repository.trim(), vscode.ConfigurationTarget.Global);
-  await configuration.update('claudeMultiSession.sync.branch', branch.trim() || 'main', vscode.ConfigurationTarget.Global);
-  await configuration.update('claudeMultiSession.sync.enabled', true, vscode.ConfigurationTarget.Global);
+  // VS Code refuses to write settings.json when it has a syntax error, when a
+  // policy or a read-only profile owns it, or mid Settings Sync conflict. Its
+  // own wording is "unable to write", which says nothing about where to look —
+  // and these three writes used to be outside any try, so that bare message was
+  // the whole of what a failing machine told you.
+  try {
+    await configuration.update('claudeMultiSession.sync.repository', repository.trim(), vscode.ConfigurationTarget.Global);
+    await configuration.update('claudeMultiSession.sync.branch', branch.trim() || 'main', vscode.ConfigurationTarget.Global);
+    await configuration.update('claudeMultiSession.sync.enabled', true, vscode.ConfigurationTarget.Global);
+  } catch (error) {
+    claudeMultiSession.log.error(`could not save sync settings: ${String(error)}`);
+    const choice = await vscode.window.showErrorMessage(
+      'Sync was not set up: VS Code could not save your settings on this machine. That is almost always a syntax error in settings.json — a stray comma or bracket — or a settings file this window is not allowed to edit.',
+      'Open settings.json',
+      'Show logs',
+    );
+    if (choice === 'Open settings.json') {
+      await vscode.commands.executeCommand('workbench.action.openSettingsJson');
+    } else if (choice === 'Show logs') {
+      await vscode.commands.executeCommand('claudeMultiSession.showLogs');
+    }
+    return;
+  }
 
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Claude Multi Session sync', cancellable: false },
@@ -94,9 +114,16 @@ export async function runSyncSetup(claudeMultiSession: Controller): Promise<void
         }
       } catch (error) {
         claudeMultiSession.reportQuietly('sync setup', error);
-        void vscode.window.showErrorMessage(
-          `Sync could not be set up: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        void vscode.window
+          .showErrorMessage(
+            `Sync could not be set up: ${error instanceof Error ? error.message : String(error)}`,
+            'Show logs',
+            'Run Doctor',
+          )
+          .then((choice) => {
+            if (choice === 'Show logs') void vscode.commands.executeCommand('claudeMultiSession.showLogs');
+            if (choice === 'Run Doctor') void vscode.commands.executeCommand('claudeMultiSession.doctor');
+          });
         return;
       }
       await claudeMultiSession.refresh({ force: true });

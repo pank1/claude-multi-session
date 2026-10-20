@@ -1,8 +1,8 @@
 {
   "name": "claude-multi-session",
   "displayName": "Claude Multi Session — usage, limits & account switching",
-  "description": "Unofficial. See how much Claude quota you have left on the 5-hour and weekly windows and when each resets \u2014 and, with more than one Claude account, switch between them from the status bar.",
-  "version": "0.1.0",
+  "description": "Unofficial. See how much Claude quota you have left on the 5-hour and weekly windows and when each resets — and, with more than one Claude account, switch between them from the status bar.",
+  "version": "0.1.1",
   "publisher": "QuantLabs",
   "license": "MIT",
   "private": false,
@@ -10,7 +10,11 @@
     "vscode": "^1.94.0",
     "node": ">=20"
   },
-  "categories": ["AI", "Visualization", "Other"],
+  "categories": [
+    "AI",
+    "Visualization",
+    "Other"
+  ],
   "keywords": [
     "claude",
     "claude code",
@@ -36,25 +40,104 @@
     "url": "https://github.com/pank1/claude-multi-session/issues"
   },
   "main": "./dist/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
-      { "command": "claudeMultiSession.switch", "title": "Switch Account…", "category": "MultiSession", "icon": "$(arrow-swap)" },
-      { "command": "claudeMultiSession.refresh", "title": "Refresh Usage", "category": "MultiSession", "icon": "$(refresh)" },
-      { "command": "claudeMultiSession.captureCurrent", "title": "Save Current Login as an Account", "category": "MultiSession", "icon": "$(save)" },
-      { "command": "claudeMultiSession.addAccount", "title": "Add Another Account…", "category": "MultiSession", "icon": "$(add)" },
-      { "command": "claudeMultiSession.removeAccount", "title": "Remove Account…", "category": "MultiSession", "icon": "$(trash)" },
-      { "command": "claudeMultiSession.renameAccount", "title": "Rename Account…", "category": "MultiSession", "icon": "$(edit)" },
-      { "command": "claudeMultiSession.doctor", "title": "Doctor", "category": "MultiSession", "icon": "$(stethoscope)" },
-      { "command": "claudeMultiSession.copySummary", "title": "Copy Usage Summary", "category": "MultiSession" },
-      { "command": "claudeMultiSession.syncSetup", "title": "Set Up Sync Across Machines…", "category": "MultiSession", "icon": "$(cloud)" },
-      { "command": "claudeMultiSession.syncPull", "title": "Pull Accounts from Sync", "category": "MultiSession", "icon": "$(cloud-download)" },
-      { "command": "claudeMultiSession.syncPush", "title": "Push Accounts to Sync", "category": "MultiSession", "icon": "$(cloud-upload)" },
-      { "command": "claudeMultiSession.unlock", "title": "Unlock (enter passphrase)", "category": "MultiSession", "icon": "$(unlock)" },
-      { "command": "claudeMultiSession.lock", "title": "Lock", "category": "MultiSession", "icon": "$(lock)" },
-      { "command": "claudeMultiSession.toggleFailover", "title": "Toggle Auto-Failover", "category": "MultiSession" },
-      { "command": "claudeMultiSession.showLogs", "title": "Show Logs", "category": "MultiSession", "icon": "$(output)" },
-      { "command": "claudeMultiSession.openWalkthrough", "title": "Open Walkthrough", "category": "MultiSession" }
+      {
+        "command": "claudeMultiSession.switch",
+        "title": "Switch Account…",
+        "category": "MultiSession",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "claudeMultiSession.refresh",
+        "title": "Refresh Usage",
+        "category": "MultiSession",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claudeMultiSession.captureCurrent",
+        "title": "Save Current Login as an Account",
+        "category": "MultiSession",
+        "icon": "$(save)"
+      },
+      {
+        "command": "claudeMultiSession.addAccount",
+        "title": "Add Another Account…",
+        "category": "MultiSession",
+        "icon": "$(add)"
+      },
+      {
+        "command": "claudeMultiSession.removeAccount",
+        "title": "Remove Account…",
+        "category": "MultiSession",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "claudeMultiSession.renameAccount",
+        "title": "Rename Account…",
+        "category": "MultiSession",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "claudeMultiSession.doctor",
+        "title": "Doctor",
+        "category": "MultiSession",
+        "icon": "$(stethoscope)"
+      },
+      {
+        "command": "claudeMultiSession.copySummary",
+        "title": "Copy Usage Summary",
+        "category": "MultiSession"
+      },
+      {
+        "command": "claudeMultiSession.syncSetup",
+        "title": "Set Up Sync Across Machines…",
+        "category": "MultiSession",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "claudeMultiSession.syncPull",
+        "title": "Pull Accounts from Sync",
+        "category": "MultiSession",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "claudeMultiSession.syncPush",
+        "title": "Push Accounts to Sync",
+        "category": "MultiSession",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "claudeMultiSession.unlock",
+        "title": "Unlock (enter passphrase)",
+        "category": "MultiSession",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "claudeMultiSession.lock",
+        "title": "Lock",
+        "category": "MultiSession",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "claudeMultiSession.toggleFailover",
+        "title": "Toggle Auto-Failover",
+        "category": "MultiSession"
+      },
+      {
+        "command": "claudeMultiSession.showLogs",
+        "title": "Show Logs",
+        "category": "MultiSession",
+        "icon": "$(output)"
+      },
+      {
+        "command": "claudeMultiSession.openWalkthrough",
+        "title": "Open Walkthrough",
+        "category": "MultiSession"
+      }
     ],
     "viewsContainers": {
       "activitybar": [
@@ -67,7 +150,11 @@
     },
     "views": {
       "claudeMultiSession": [
-        { "id": "claudeMultiSession.accounts", "name": "Accounts & Quota", "icon": "media/activity.svg" }
+        {
+          "id": "claudeMultiSession.accounts",
+          "name": "Accounts & Quota",
+          "icon": "media/activity.svg"
+        }
       ]
     },
     "viewsWelcome": [
@@ -78,19 +165,54 @@
     ],
     "menus": {
       "view/title": [
-        { "command": "claudeMultiSession.refresh", "when": "view == claudeMultiSession.accounts", "group": "navigation@1" },
-        { "command": "claudeMultiSession.addAccount", "when": "view == claudeMultiSession.accounts", "group": "navigation@2" },
-        { "command": "claudeMultiSession.syncPull", "when": "view == claudeMultiSession.accounts && claudeMultiSession.syncEnabled", "group": "navigation@3" },
-        { "command": "claudeMultiSession.doctor", "when": "view == claudeMultiSession.accounts", "group": "overflow@1" },
-        { "command": "claudeMultiSession.syncSetup", "when": "view == claudeMultiSession.accounts", "group": "overflow@2" },
-        { "command": "claudeMultiSession.showLogs", "when": "view == claudeMultiSession.accounts", "group": "overflow@3" }
+        {
+          "command": "claudeMultiSession.refresh",
+          "when": "view == claudeMultiSession.accounts",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claudeMultiSession.addAccount",
+          "when": "view == claudeMultiSession.accounts",
+          "group": "navigation@2"
+        },
+        {
+          "command": "claudeMultiSession.syncPull",
+          "when": "view == claudeMultiSession.accounts && claudeMultiSession.syncEnabled",
+          "group": "navigation@3"
+        },
+        {
+          "command": "claudeMultiSession.doctor",
+          "when": "view == claudeMultiSession.accounts",
+          "group": "overflow@1"
+        },
+        {
+          "command": "claudeMultiSession.syncSetup",
+          "when": "view == claudeMultiSession.accounts",
+          "group": "overflow@2"
+        },
+        {
+          "command": "claudeMultiSession.showLogs",
+          "when": "view == claudeMultiSession.accounts",
+          "group": "overflow@3"
+        }
       ],
       "view/item/context": [
-        { "command": "claudeMultiSession.renameAccount", "when": "view == claudeMultiSession.accounts && viewItem == account", "group": "inline@1" },
-        { "command": "claudeMultiSession.removeAccount", "when": "view == claudeMultiSession.accounts && viewItem == account", "group": "1_edit@1" }
+        {
+          "command": "claudeMultiSession.renameAccount",
+          "when": "view == claudeMultiSession.accounts && viewItem == account",
+          "group": "inline@1"
+        },
+        {
+          "command": "claudeMultiSession.removeAccount",
+          "when": "view == claudeMultiSession.accounts && viewItem == account",
+          "group": "1_edit@1"
+        }
       ],
       "commandPalette": [
-        { "command": "claudeMultiSession.openWalkthrough", "when": "false" }
+        {
+          "command": "claudeMultiSession.openWalkthrough",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -103,7 +225,10 @@
         },
         "claudeMultiSession.statusBar.alignment": {
           "type": "string",
-          "enum": ["left", "right"],
+          "enum": [
+            "left",
+            "right"
+          ],
           "default": "right",
           "description": "Which side of the status bar to use. Takes effect after a window reload."
         },
@@ -144,7 +269,10 @@
         },
         "claudeMultiSession.refreshPolicy": {
           "type": "string",
-          "enum": ["auto", "none"],
+          "enum": [
+            "auto",
+            "none"
+          ],
           "enumDescriptions": [
             "Refresh the sign-in tokens of accounts you are not using, so their figures stay current. The account in use is left to Claude Code, which refreshes it itself.",
             "Never refresh a token. Accounts you are not using will show their last known figures once their token expires."
@@ -191,7 +319,11 @@
         },
         "claudeMultiSession.restartStrategy": {
           "type": "string",
-          "enum": ["reload", "kill", "none"],
+          "enum": [
+            "reload",
+            "kill",
+            "none"
+          ],
           "enumDescriptions": [
             "End other Claude Code sessions on this machine and reload the window so sessions come back on the new account.",
             "End every Claude Code session on this machine and leave reopening to you.",
@@ -250,7 +382,12 @@
         },
         "claudeMultiSession.logLevel": {
           "type": "string",
-          "enum": ["error", "warn", "info", "debug"],
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
           "default": "info",
           "description": "Detail level in the MultiSession output channel."
         }
@@ -266,22 +403,35 @@
             "id": "status",
             "title": "Watch your quota in the status bar",
             "description": "MultiSession reads the login Claude Code is already using, so there is nothing to configure. The status bar shows what is left of your 5-hour window and your week, with a countdown to the next reset.\n\n[Refresh now](command:claudeMultiSession.refresh)",
-            "media": { "markdown": "media/walkthrough-status.md" },
-            "completionEvents": ["onCommand:claudeMultiSession.refresh"]
+            "media": {
+              "markdown": "media/walkthrough-status.md"
+            },
+            "completionEvents": [
+              "onCommand:claudeMultiSession.refresh"
+            ]
           },
           {
             "id": "accounts",
             "title": "Add a second account",
             "description": "Save the login you are on, then let MultiSession walk you through signing in to the next one. After that, switching is one click in the status bar.\n\n[Add another account](command:claudeMultiSession.addAccount)",
-            "media": { "markdown": "media/walkthrough-accounts.md" },
-            "completionEvents": ["onCommand:claudeMultiSession.addAccount", "onCommand:claudeMultiSession.captureCurrent"]
+            "media": {
+              "markdown": "media/walkthrough-accounts.md"
+            },
+            "completionEvents": [
+              "onCommand:claudeMultiSession.addAccount",
+              "onCommand:claudeMultiSession.captureCurrent"
+            ]
           },
           {
             "id": "sync",
             "title": "Optional: carry your accounts between machines",
             "description": "Your accounts can live in one passphrase-encrypted file in a private git repository of your own, so any machine you trust has all of them without signing in again.\n\n[Set up sync](command:claudeMultiSession.syncSetup)",
-            "media": { "markdown": "media/walkthrough-sync.md" },
-            "completionEvents": ["onCommand:claudeMultiSession.syncSetup"]
+            "media": {
+              "markdown": "media/walkthrough-sync.md"
+            },
+            "completionEvents": [
+              "onCommand:claudeMultiSession.syncSetup"
+            ]
           }
         ]
       }

@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.1.0 — unreleased
+## 0.1.1
+
+- Sync setup now says what went wrong when VS Code cannot save settings. The three settings
+  writes sat outside any error handling, so a machine whose `settings.json` VS Code will not
+  write — a syntax error in it, a read-only profile, a Settings Sync conflict — failed with
+  VS Code's bare "unable to write" and no hint where to look. It now names the cause and offers
+  to open `settings.json`.
+- A failed sync setup offers **Show logs** and **Run Doctor** rather than a dead end.
+- Doctor proves the extension's own directory is writable instead of assuming it, and reports
+  whether settings can be written at all.
+
+## 0.1.0
 
 First build.
 
