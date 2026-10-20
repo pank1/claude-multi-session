@@ -181,7 +181,7 @@ export class AccountsTree implements vscode.TreeDataProvider<Node>, vscode.Dispo
     const now = new Date();
     const used = Math.round(node.usage.percentUsed);
     const item = new vscode.TreeItem(
-      `${colouredBar(used, 10)}  ${node.estimate ? '~' : ''}${used}% used`,
+      `${colouredBar(used, 10)}  ${node.estimate ? '~' : ''}${used}%`,
       vscode.TreeItemCollapsibleState.None,
     );
     item.description = node.usage.resetsAt

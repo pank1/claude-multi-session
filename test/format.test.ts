@@ -48,13 +48,13 @@ test('every bar is the width asked for, whatever the number', () => {
 
 test('a cell states what the bar means and when it resets', () => {
   const cell = windowCell(window(25), NOW);
-  assert.match(cell, /25% used/);
+  assert.match(cell, /25%/);
   assert.match(cell, /3h00m/, 'the countdown to the reset is in the cell');
 });
 
 test('a cell with no reset time says nothing about one', () => {
   const cell = windowCell(window(25, null), NOW);
-  assert.match(cell, /25% used/);
+  assert.match(cell, /25%/);
   assert.equal(cell.includes('·'), false);
 });
 

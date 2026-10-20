@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- The percentage beside a bar is just the number now. The bar already says which way it
+  points, and the hover's footer still states the convention once.
+
 ## 0.2.0
 
 **Important: do not use Claude Code's Logout.** Logging out revokes that account's sign-in

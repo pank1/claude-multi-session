@@ -43,7 +43,7 @@ export function windowCell(usage: WindowUsage | undefined, now: Date): string {
   if (usage.locked) return `${colouredBar(100)} locked`;
   const used = Math.round(usage.percentUsed);
   const reset = usage.resetsAt ? ` · ${formatCountdown(msUntil(usage.resetsAt, now))}` : '';
-  return `${colouredBar(used)} ${used}% used${reset}`;
+  return `${colouredBar(used)} ${used}%${reset}`;
 }
 
 export function severityIcon(severity: Severity): string {
