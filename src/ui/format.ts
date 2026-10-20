@@ -37,14 +37,26 @@ export function colouredBar(percentUsed: number, width = 8): string {
   return FILL[colourFor(safe)].repeat(filled) + EMPTY.repeat(Math.max(0, width - filled));
 }
 
-/** `🟩🟩⬜⬜⬜⬜⬜⬜ 25% used · 1d 13h` */
-export function windowCell(usage: WindowUsage | undefined, now: Date): string {
+/**
+ * `🟩🟩⬜⬜⬜⬜⬜⬜ 26% · 1d 9h`
+ *
+ * The width is per-column on purpose: a week and a five-hour window are not the
+ * same span, and giving them the same number of blocks invited reading one
+ * against the other. Emoji are double-width, so a row of two eight-block bars
+ * plus text wraps inside a hover — which split "1d 9h" across two lines. What
+ * the time means is carried by the column header, once, instead of in every
+ * cell where it would cost the width that caused the wrapping.
+ */
+export function windowCell(usage: WindowUsage | undefined, now: Date, width = 8): string {
   if (!usage) return '—';
-  if (usage.locked) return `${colouredBar(100)} locked`;
+  if (usage.locked) return `${colouredBar(100, width)} locked`;
   const used = Math.round(usage.percentUsed);
   const reset = usage.resetsAt ? ` · ${formatCountdown(msUntil(usage.resetsAt, now))}` : '';
-  return `${colouredBar(used)} ${used}%${reset}`;
+  return `${colouredBar(used, width)} ${used}%${reset}`;
 }
+
+/** Blocks per column. The week is the longer span, so it gets the longer bar. */
+export const BAR_WIDTH = { week: 8, session: 4 } as const;
 
 export function severityIcon(severity: Severity): string {
   switch (severity) {
@@ -126,7 +138,8 @@ export function tooltipMarkdown(views: AccountView[], now = new Date()): string 
   const live = views.filter((view) => !view.profile.needsSignIn);
   const dead = views.filter((view) => view.profile.needsSignIn);
 
-  lines.push('| | Account | Week | 5-hour |');
+  // The header says what the time in each cell is, so the cells do not have to.
+  lines.push('| | Account | Week · resets in | 5-hour · resets in |');
   lines.push('|---|---|---|---|');
 
   for (const view of [...live].sort(byWeekHeadroom)) {
@@ -134,7 +147,11 @@ export function tooltipMarkdown(views: AccountView[], now = new Date()): string 
     const marker = view.isActive ? '●' : '';
     const name = view.isActive ? `**${view.profile.label}**` : view.profile.label;
     lines.push(
-      `| ${marker} | ${name} | ${windowCell(snapshot?.week, now)} | ${windowCell(snapshot?.session, now)} |`,
+      `| ${marker} | ${name} | ${windowCell(snapshot?.week, now, BAR_WIDTH.week)} | ${windowCell(
+        snapshot?.session,
+        now,
+        BAR_WIDTH.session,
+      )} |`,
     );
   }
 
@@ -149,20 +166,30 @@ export function tooltipMarkdown(views: AccountView[], now = new Date()): string 
     const plan = active.profile.identity?.plan;
     if (plan) detail.push(plan);
     for (const limit of active.snapshot.scoped.filter((entry) => entry.percentUsed > 0)) {
-      detail.push(`${limit.label} ${Math.round(limit.percentUsed)}% used`);
-    }
-    if (active.snapshot.breakdown.length > 0) {
-      detail.push(active.snapshot.breakdown.map((row) => `${row.label} ${row.percent}%`).join(', '));
+      detail.push(`${limit.label} ${Math.round(limit.percentUsed)}%`);
     }
     if (detail.length > 0) lines.push(detail.join(' · '));
 
-    const presence = describePresence(active.presence ?? [], now);
-    if (presence) lines.push(`Also ${presence}.`);
+    if (active.snapshot.breakdown.length > 0) {
+      lines.push('');
+      lines.push(
+        `Week spent on: ${active.snapshot.breakdown.map((row) => `${row.label} ${row.percent}%`).join(' · ')}`,
+      );
+    }
 
+    const presence = describePresence(active.presence ?? [], now);
+    if (presence) {
+      lines.push('');
+      lines.push(`Also ${presence}.`);
+    }
+
+    // Blank line first: without it Markdown folds this into the line above and
+    // the footnote runs straight on from the figures.
+    lines.push('');
     lines.push(
       active.snapshot.source === 'estimate'
         ? `_Estimated from local logs — Anthropic's figures were unavailable ${formatRelative(active.snapshot.fetchedAt, now)}._`
-        : `_Figures from ${formatRelative(active.snapshot.fetchedAt, now)}. Bars show quota spent._`,
+        : `_Figures from ${formatRelative(active.snapshot.fetchedAt, now)}. Bars and percentages show quota spent._`,
     );
   }
 

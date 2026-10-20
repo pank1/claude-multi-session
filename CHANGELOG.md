@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.2
+
+- The 5-hour bar is four blocks to the week's eight. Two eight-block bars of double-width emoji
+  plus their text overran the hover and wrapped, which split a countdown like "1d 9h" across
+  two lines; and giving a week and a five-hour window the same number of blocks invited reading
+  one against the other when they measure different spans.
+- The countdown says what it is. "1d 9h" on its own told you nothing — the column header now
+  reads **Week · resets in**, so the unit is stated once rather than in every cell, where it
+  would have cost the width that caused the wrapping.
+- The plan, the per-model limits, the weekly breakdown and the footnote are separate lines
+  instead of running together into one paragraph.
+
 ## 0.2.1
 
 - The percentage beside a bar is just the number now. The bar already says which way it

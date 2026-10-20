@@ -66,3 +66,22 @@ test('a locked window says locked rather than a percentage', () => {
 test('a missing window is a dash, not a zero', () => {
   assert.equal(windowCell(undefined, NOW), '—', 'zero would read as "nothing used"');
 });
+
+test('each column sets its own bar width', () => {
+  const week = windowCell(window(26), NOW, 8);
+  const session = windowCell(window(1), NOW, 4);
+  assert.equal([...week].filter((c) => c === '🟩' || c === '⬜').length, 8);
+  assert.equal([...session].filter((c) => c === '🟩' || c === '⬜').length, 4);
+});
+
+test('a locked cell is the width of its own column too', () => {
+  const locked: WindowUsage = { ...window(40), locked: true, lockedReason: 'limit reached' };
+  assert.equal([...windowCell(locked, NOW, 4)].filter((c) => c === '🟥').length, 4);
+});
+
+test('the cell carries no unit — the column header does', () => {
+  const cell = windowCell(window(26), NOW, 8);
+  assert.equal(cell.includes('used'), false);
+  assert.equal(cell.includes('resets'), false);
+  assert.match(cell, /26% · /, 'number then the countdown, nothing else');
+});
