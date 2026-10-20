@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0
+
+**Important: do not use Claude Code's Logout.** Logging out revokes that account's sign-in
+server-side — the access token *and* the refresh token — so any copy this extension holds stops
+working permanently. Measured, not guessed: a revoked account returns
+`401 "OAuth access token has been revoked"` and its refresh returns `400 invalid_grant`.
+
+- **The add-account wizard no longer signs you out.** It used to call Claude Code's logout
+  between accounts, which revoked the account it had just saved — so collecting several
+  accounts quietly destroyed all but the last. It now asks you to `/login` as the next account,
+  which replaces the stored sign-in without revoking anything.
+- **The hover is a table.** One row per account — account, week, 5-hour — with a coloured bar
+  that fills as quota is spent, in place of the mixture of prose and bullets that came before.
+  Green under 50% spent, amber to 75, orange to 90, red beyond.
+- One convention for every number: a bar and the figure beside it both show quota **spent**.
+  The status bar still shows what is **left**, and now says so in the word.
+- Revoked accounts are named as revoked and say to re-add them, instead of the ambiguous
+  "needs signing in again".
+- The panel's bars are coloured too.
+
 ## 0.1.1
 
 - Sync setup now says what went wrong when VS Code cannot save settings. The three settings

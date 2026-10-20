@@ -43,13 +43,22 @@ If Anthropic cannot be reached, the last figures stay on screen with a clock ico
 disappearing. A `~` in front of a number means it is an estimate from your local session logs
 rather than a measurement.
 
+## ⚠️ Never use Claude Code's **Logout**
+
+Logging out **revokes** that account's sign-in on Anthropic's side — the access token *and* the
+refresh token. Any copy this extension holds for that account stops working permanently, and
+no amount of refreshing brings it back. You would have to sign in to that account again.
+
+To move between accounts, use the switcher in the status bar, or `/login` in a Claude Code
+session. Both replace the stored sign-in without revoking anything.
+
 ## More than one account
 
 Claude Code does the signing in; Claude Multi Session keeps a copy of each sign-in so you can move
 between them.
 
-- **Claude Multi Session: Add Another Account…** walks through it: save the current account, sign out,
-  sign in with the next one, save that too.
+- **Claude Multi Session: Add Another Account…** walks through it: save the current account,
+  `/login` as the next one, save that too. It never signs you out — see the warning above.
 - **Claude Multi Session: Save Current Login** captures whatever Claude Code is signed in to right now.
 
 Click the status bar for the switcher. Every account is listed with its own figures, so you can

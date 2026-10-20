@@ -4,7 +4,7 @@ import { Controller } from '../controller';
 import { describePresence } from '../core/presence';
 import { formatCountdown, formatRelative, formatResetClock, msUntil } from '../core/time';
 import { AccountView, WindowUsage } from '../core/types';
-import { percentBar, severityIcon } from './format';
+import { colouredBar, severityIcon } from './format';
 
 type Node =
   | { kind: 'account'; view: AccountView }
@@ -179,9 +179,9 @@ export class AccountsTree implements vscode.TreeDataProvider<Node>, vscode.Dispo
 
   private windowItem(node: Extract<Node, { kind: 'window' }>): vscode.TreeItem {
     const now = new Date();
-    const left = Math.round(node.usage.percentLeft);
+    const used = Math.round(node.usage.percentUsed);
     const item = new vscode.TreeItem(
-      `${node.estimate ? '~' : ''}${left}% left  ${percentBar(node.usage.percentUsed, 12)}`,
+      `${colouredBar(used, 10)}  ${node.estimate ? '~' : ''}${used}% used`,
       vscode.TreeItemCollapsibleState.None,
     );
     item.description = node.usage.resetsAt

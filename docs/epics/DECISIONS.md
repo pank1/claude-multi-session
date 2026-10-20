@@ -81,6 +81,29 @@ Anthropic. The subtitle carries the work the extension actually does, because "s
 corner of the Marketplace usually means a saved conversation, and this does not manage
 conversations. The README says plainly that it is unofficial and unaffiliated.
 
+**D-16 — Never sign out of Claude Code to add an account. Measured 2026-10-20.**
+Logging out revokes the token family server-side. Both halves: the access token comes back
+`401 "OAuth access token has been revoked"` and the refresh token comes back
+`400 invalid_grant "Refresh token not found or invalid"`. There is no recovery — a revoked
+account can only be signed into again.
+
+The first add-account wizard called `claude-vscode.logout` between accounts, so every account
+it saved was destroyed by the next run. Four of six accounts on the first real fleet were dead
+on arrival and the extension correctly, uselessly, reported them as needing sign-in.
+
+`/login` replaces the stored credentials without revoking anything, so that is the only path
+the wizard offers now, stated twice and in the README. The lesson generalises: the stored
+credential being *unexpired* says nothing about it being *valid*, so the UI must distinguish
+"token expired" from "token revoked" — only the first is recoverable by refreshing.
+
+**D-17 — One convention for every number: bars show quota spent.**
+The first hover mixed "99% left" against bars drawn from percent used, listed the active
+account as prose and the rest as bullets in a different format, and was fairly described as
+confusing. Every account is now one row of a table — account, week, 5-hour — with a coloured
+bar that fills as quota is spent and a figure in the same direction as the bar. The status bar
+is the single exception and says "left" in the word, because at a glance what you want is what
+remains.
+
 **D-12 — Positioned as quota visibility, not limit evasion.**
 The README leads with status and resets, describes failover as "move to the account whose quota
 expires soonest", and says plainly: this manages subscriptions you already own and pay for; it

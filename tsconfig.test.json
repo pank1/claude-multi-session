@@ -3,8 +3,14 @@
   "compilerOptions": {
     "outDir": "out-test",
     "rootDir": ".",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "sourceMap": false
   },
-  "include": ["src/core", "test"]
+  "include": [
+    "src/core",
+    "src/ui/format.ts",
+    "test"
+  ]
 }

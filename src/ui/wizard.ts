@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { Controller } from '../controller';
 import { StoredCredentials } from '../core/types';
 
-const LOGOUT_COMMAND = 'claude-vscode.logout';
 const SIGN_IN_HINTS = [
   'claude-vscode.newConversation',
   'claude-vscode.editor.open',
@@ -13,10 +12,15 @@ const SIGN_IN_HINTS = [
 /**
  * Adding a second account.
  *
- * Claude Multi Session never performs the sign-in itself (D-02): Claude Code's own login
- * does that, and this wizard only saves what comes out of it. The steps are
- * explicit because the middle of the flow is the one moment the user is signed
- * out, and they should know why.
+ * Claude Multi Session never performs the sign-in itself (D-02): Claude Code's
+ * own login does that, and this wizard only saves what comes out of it.
+ *
+ * It must never sign you out to get there. Logging out of Claude Code revokes
+ * the whole token family server-side — the access token *and* the refresh
+ * token — so a logout between accounts destroys the sign-in that was just
+ * saved. An earlier version of this wizard did exactly that, and quietly killed
+ * every account it had collected (D-16). `/login` replaces the credential file
+ * on its own, which revokes nothing.
  */
 export async function runAddAccountWizard(claudeMultiSession: Controller): Promise<void> {
   const existing = claudeMultiSession.store.list();
@@ -28,9 +32,12 @@ export async function runAddAccountWizard(claudeMultiSession: Controller): Promi
         'Claude Multi Session will:',
         '',
         `1. Save the account you are using now${existing.length > 0 ? ' (if it is not saved already)' : ''}.`,
-        '2. Sign Claude Code out.',
-        '3. Wait while you sign in with the other account.',
-        '4. Save that one too, so you can move between them from the status bar.',
+        '2. Wait while you sign in with the other account.',
+        '3. Save that one too, so you can move between them from the status bar.',
+        '',
+        'Use /login in a Claude Code session — NOT Logout.',
+        'Logging out revokes the sign-in for the account you are leaving, and',
+        'this extension would lose it.',
         '',
         'You can stop at any point. Nothing is sent anywhere.',
       ].join('\n'),
@@ -44,25 +51,24 @@ export async function runAddAccountWizard(claudeMultiSession: Controller): Promi
     claudeMultiSession.store.list().map((profile) => profile.credentials.claudeAiOauth.refreshToken),
   );
 
-  const commands = await vscode.commands.getCommands(true);
-  if (commands.includes(LOGOUT_COMMAND)) {
-    try {
-      await vscode.commands.executeCommand(LOGOUT_COMMAND);
-    } catch (error) {
-      claudeMultiSession.log.warn(`Claude Code's logout command failed: ${String(error)}`);
-    }
-  } else {
-    const manual = await vscode.window.showInformationMessage(
-      'Sign out of Claude Code yourself',
-      {
-        modal: true,
-        detail:
-          'Run “Claude Code: Logout” from the Command Palette, or /logout in a Claude session, then come back here and choose Continue.',
-      },
-      'Continue',
-    );
-    if (manual !== 'Continue') return;
-  }
+  const go = await vscode.window.showInformationMessage(
+    'Now sign in with the other account',
+    {
+      modal: true,
+      detail: [
+        'In a Claude Code session, run:',
+        '',
+        '    /login',
+        '',
+        'and sign in with the other account. Claude Code replaces its stored',
+        'sign-in, which leaves the one just saved intact.',
+        '',
+        'Do not use Logout — that revokes the account you are leaving.',
+      ].join('\n'),
+    },
+    'I am signing in now',
+  );
+  if (go !== 'I am signing in now') return;
 
   const fresh = await waitForNewLogin(claudeMultiSession, known);
   if (!fresh) {
@@ -73,8 +79,9 @@ export async function runAddAccountWizard(claudeMultiSession: Controller): Promi
       'Open Claude Code',
     );
     if (retry === 'Open Claude Code') {
+      const available = await vscode.commands.getCommands(true);
       for (const command of SIGN_IN_HINTS) {
-        if (commands.includes(command)) {
+        if (available.includes(command)) {
           await vscode.commands.executeCommand(command);
           break;
         }
