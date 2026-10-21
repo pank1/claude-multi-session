@@ -119,3 +119,12 @@ that leaves the machine. Stated plainly in the README's privacy section.
 **D-13 — `src/core/**` imports nothing from `vscode`.**
 Policy, crypto, parsing, time and the API client are plain Node so `node:test` can cover them
 without an Electron harness. `npm run check` therefore runs in CI on a clean box.
+
+**D-18 — A revoked account is a sign-in button, not an error.**
+Choosing a revoked account used to refuse with "needs signing in again", and the add-account
+wizard waited silently for a sign-in it had not started — which is indistinguishable from a
+hang. Both now drive `claude auth login --claudeai --email <that account>`, found on PATH or in
+the official extension's bundled binary, in a terminal, and watch the credential store for the
+result. Pre-filling the address is the difference between "sign in again" and "sign in again,
+as which one?" — and since the sign-in page does not force the choice, the account that comes
+back is checked against the one asked for.

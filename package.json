@@ -2,7 +2,7 @@
   "name": "claude-multi-session",
   "displayName": "Claude Multi Session — usage, limits & account switching",
   "description": "Unofficial. See how much Claude quota you have left on the 5-hour and weekly windows and when each resets — and, with more than one Claude account, switch between them from the status bar.",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "publisher": "QuantLabs",
   "license": "MIT",
   "private": false,
@@ -48,95 +48,101 @@
       {
         "command": "claudeMultiSession.switch",
         "title": "Switch Account…",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(arrow-swap)"
       },
       {
         "command": "claudeMultiSession.refresh",
         "title": "Refresh Usage",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(refresh)"
       },
       {
         "command": "claudeMultiSession.captureCurrent",
         "title": "Save Current Login as an Account",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(save)"
       },
       {
         "command": "claudeMultiSession.addAccount",
         "title": "Add Another Account…",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(add)"
+      },
+      {
+        "command": "claudeMultiSession.signInAgain",
+        "title": "Sign In Again (revoked account)…",
+        "category": "Claude Multi Session",
+        "icon": "$(key)"
       },
       {
         "command": "claudeMultiSession.removeAccount",
         "title": "Remove Account…",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(trash)"
       },
       {
         "command": "claudeMultiSession.renameAccount",
         "title": "Rename Account…",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(edit)"
       },
       {
         "command": "claudeMultiSession.doctor",
         "title": "Doctor",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(stethoscope)"
       },
       {
         "command": "claudeMultiSession.copySummary",
         "title": "Copy Usage Summary",
-        "category": "MultiSession"
+        "category": "Claude Multi Session"
       },
       {
         "command": "claudeMultiSession.syncSetup",
         "title": "Set Up Sync Across Machines…",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(cloud)"
       },
       {
         "command": "claudeMultiSession.syncPull",
         "title": "Pull Accounts from Sync",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(cloud-download)"
       },
       {
         "command": "claudeMultiSession.syncPush",
         "title": "Push Accounts to Sync",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(cloud-upload)"
       },
       {
         "command": "claudeMultiSession.unlock",
         "title": "Unlock (enter passphrase)",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(unlock)"
       },
       {
         "command": "claudeMultiSession.lock",
         "title": "Lock",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(lock)"
       },
       {
         "command": "claudeMultiSession.toggleFailover",
         "title": "Toggle Auto-Failover",
-        "category": "MultiSession"
+        "category": "Claude Multi Session"
       },
       {
         "command": "claudeMultiSession.showLogs",
         "title": "Show Logs",
-        "category": "MultiSession",
+        "category": "Claude Multi Session",
         "icon": "$(output)"
       },
       {
         "command": "claudeMultiSession.openWalkthrough",
         "title": "Open Walkthrough",
-        "category": "MultiSession"
+        "category": "Claude Multi Session"
       }
     ],
     "viewsContainers": {

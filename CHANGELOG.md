@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+- **Choosing a revoked account takes you straight to Anthropic sign-in**, with that account's
+  address already filled in, instead of refusing with "needs signing in again". Same from the
+  panel and from the new *Sign In Again* command.
+- **Adding an account no longer appears to hang.** It used to wait silently for a sign-in it
+  had not started, so nothing happened until you worked out you were meant to go and run
+  something. It now opens the sign-in itself, in a terminal and your browser, and waits
+  visibly with a Cancel.
+- The sign-in page does not force which account you pick, so if the one that comes back is not
+  the one asked for, you are told and offered another go.
+- Falls back to the Claude binary the official extension ships when `claude` is not on PATH —
+  which it is not, for anyone who only uses Claude Code inside VS Code.
+- Command palette entries now read "Claude Multi Session: …" rather than "MultiSession: …".
+
 ## 0.2.3
 
 - Every cell in the table has the same shape. A window with no reset time reported showed just

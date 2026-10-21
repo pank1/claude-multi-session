@@ -9,6 +9,7 @@ import { showDoctor } from './ui/doctor';
 import { oneLine } from './ui/format';
 import { PassphraseHolder } from './ui/passphrase';
 import { showAccountSwitcher } from './ui/quickpick';
+import { signInAgain } from './ui/reauth';
 import { StatusBar } from './ui/statusbar';
 import { runSyncSetup } from './ui/syncSetup';
 import { AccountsTree } from './ui/tree';
@@ -50,6 +51,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   register('claudeMultiSession.switch', () => showAccountSwitcher(claudeMultiSession));
 
   register('claudeMultiSession.switchToAccount', async (accountId: string) => {
+    // Picking a revoked account means "make this work again", not "switch".
+    const profile = claudeMultiSession.store.get(accountId);
+    if (profile?.needsSignIn) {
+      await signInAgain(claudeMultiSession, profile);
+      return;
+    }
     const result = await claudeMultiSession.switchTo(accountId);
     if (result.ok) void vscode.window.showInformationMessage(result.message);
     else void vscode.window.showWarningMessage(result.message);
@@ -69,6 +76,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   register('claudeMultiSession.addAccount', () => runAddAccountWizard(claudeMultiSession));
+
+  register('claudeMultiSession.signInAgain', async (argument?: unknown) => {
+    const accountId = await resolveAccountId(
+      claudeMultiSession,
+      argument,
+      'Sign in again as which account?',
+    );
+    await signInAgain(claudeMultiSession, accountId ? claudeMultiSession.store.get(accountId) : undefined);
+  });
 
   register('claudeMultiSession.renameAccount', async (argument?: unknown) => {
     const accountId = await resolveAccountId(claudeMultiSession, argument, 'Rename which account?');

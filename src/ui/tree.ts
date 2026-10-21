@@ -74,10 +74,14 @@ export class AccountsTree implements vscode.TreeDataProvider<Node>, vscode.Dispo
     if (view.profile.needsSignIn) {
       children.push({
         kind: 'info',
-        title: 'Needs signing in again',
-        description: 'run Add Another Account to replace it',
-        icon: 'alert',
-        command: { command: 'claudeMultiSession.addAccount', title: 'Add another account' },
+        title: 'Sign in again',
+        description: 'opens Anthropic sign-in with this address',
+        icon: 'key',
+        command: {
+          command: 'claudeMultiSession.signInAgain',
+          title: 'Sign in again',
+          arguments: [view.profile.id],
+        },
       });
     }
 

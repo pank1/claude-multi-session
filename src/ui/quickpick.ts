@@ -5,6 +5,7 @@ import { describePresence } from '../core/presence';
 import { Candidate, pickAccount } from '../core/policy';
 import { AccountView } from '../core/types';
 import { oneLine, shortLabel } from './format';
+import { signInAgain } from './reauth';
 
 interface Item extends vscode.QuickPickItem {
   accountId?: string;
@@ -64,6 +65,14 @@ export async function showAccountSwitcher(claudeMultiSession: Controller): Promi
   }
 
   if (chosen.accountId) {
+    // A revoked account cannot be switched to, so choosing one means "get this
+    // working again" — take it straight to the sign-in rather than explaining
+    // why the click did nothing.
+    const profile = claudeMultiSession.store.get(chosen.accountId);
+    if (profile?.needsSignIn) {
+      await signInAgain(claudeMultiSession, profile);
+      return;
+    }
     const result = await claudeMultiSession.switchTo(chosen.accountId);
     if (result.ok) void vscode.window.showInformationMessage(result.message);
     else void vscode.window.showWarningMessage(result.message);
@@ -110,10 +119,15 @@ function buildItems(claudeMultiSession: Controller): Item[] {
   const ordered = [...views].sort(orderForList);
 
   for (const view of ordered) {
+    const revoked = Boolean(view.profile.needsSignIn);
     items.push({
-      label: `${view.isActive ? '$(check) ' : '$(circle-outline) '}${view.profile.label}`,
-      description: describeRight(view, view.profile.id === recommended),
-      detail: detailFor(view, now),
+      label: `${revoked ? '$(key) ' : view.isActive ? '$(check) ' : '$(circle-outline) '}${view.profile.label}`,
+      description: revoked
+        ? 'sign-in revoked — choose to sign in again'
+        : describeRight(view, view.profile.id === recommended),
+      detail: revoked
+        ? 'Opens Anthropic sign-in with this address filled in'
+        : detailFor(view, now),
       accountId: view.profile.id,
     });
   }
