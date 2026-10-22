@@ -2,7 +2,7 @@
   "name": "claude-multi-session",
   "displayName": "Claude Multi Session — usage, limits & account switching",
   "description": "Unofficial. See how much Claude quota you have left on the 5-hour and weekly windows and when each resets — and, with more than one Claude account, switch between them from the status bar.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "QuantLabs",
   "license": "MIT",
   "private": false,
@@ -326,17 +326,17 @@
         "claudeMultiSession.restartStrategy": {
           "type": "string",
           "enum": [
+            "new-sessions",
             "reload",
-            "kill",
-            "none"
+            "kill"
           ],
           "enumDescriptions": [
-            "End other Claude Code sessions on this machine and reload the window so sessions come back on the new account.",
-            "End every Claude Code session on this machine and leave reopening to you.",
-            "Swap the credentials only. Running sessions keep the old account until they end."
+            "Swap the sign-in and leave running sessions alone. They keep the account they started with until you restart them; new sessions use the new account.",
+            "End Claude Code sessions in other windows and reload this one, so sessions come back on the new account.",
+            "End every Claude Code session on this machine and leave reopening to you."
           ],
-          "default": "reload",
-          "description": "What happens to running Claude Code sessions when you switch account."
+          "default": "new-sessions",
+          "markdownDescription": "What happens to Claude Code sessions that are already running when you switch account.\n\nA running session reads its sign-in once, at startup, and keeps it in memory — it does **not** notice a swap, and carries on spending the quota of the account it started with. `new-sessions` accepts that and tells you how many are still on the old account; the other two force the issue by ending sessions."
         },
         "claudeMultiSession.restartGraceSeconds": {
           "type": "number",

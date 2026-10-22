@@ -130,6 +130,27 @@ export class ProfileStore {
     await this.saveSnapshots();
   }
 
+  /**
+   * Replaces stand-in labels with the account's address, for accounts whose
+   * identity is already known.
+   *
+   * The identity lookup only runs for accounts that have no identity yet, so a
+   * profile that was named "Account 1" *and* identified could never be renamed
+   * by that path — which left the account in daily use sitting under a generic
+   * name among a column of addresses.
+   */
+  async adoptIdentityLabels(): Promise<string[]> {
+    const renamed: string[] = [];
+    for (const id of this.profiles.map((profile) => profile.id)) {
+      const profile = this.get(id);
+      const email = profile?.identity?.email;
+      if (!profile || !email || !isPlaceholderLabel(profile.label)) continue;
+      await this.update(id, { label: email });
+      renamed.push(email);
+    }
+    return renamed;
+  }
+
   async replaceAll(profiles: Profile[]): Promise<void> {
     this.profiles = profiles;
     await this.saveProfiles();

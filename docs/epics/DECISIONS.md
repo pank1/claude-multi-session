@@ -146,3 +146,24 @@ The first account adopted at install is named "Account N" before anything is kno
 that name used to stick for ever. The account in daily use showing as "Account 1" while every
 other row showed an email is how two accounts start to look like each other. Any label matching
 `Account <n>` is now replaced by the address as soon as a profile lookup returns one.
+
+**D-21 — A running session never picks up a switch. Measured, 2026-10-22.**
+An inotify watch on `~/.claude/.credentials.json` recorded **zero** opens, reads or writes over
+75 seconds of a busy Claude Code session, while the same watch fired immediately for an
+unrelated process reading the file — so the watch could fail and did not. No session holds the
+file open or watches it either.
+
+A session therefore reads its sign-in once, at startup, and keeps it in memory. Swapping the
+file underneath changes nothing for it: it carries on against the account it started with, and
+keeps spending that account's quota. "I switched and everything carried on as normal" is
+accurate, and the part that is invisible is which account was paying.
+
+The default is now `new-sessions`: swap the sign-in, leave running sessions alone, and say how
+many are still on the previous account. Killing work to force the point is available
+(`reload`, `kill`) but is no longer what happens by default.
+
+**D-22 — A switch is not done until the credential store says so.**
+`switchTo` wrote the new credentials and reported success. A write that silently does not take
+— a keychain refusal, a read-only home, another process rewriting the file — then reads as "the
+switch did nothing". It now reads the store back and compares the sign-in before reporting;
+if it does not match, the previous credentials are restored and the switch is reported failed.

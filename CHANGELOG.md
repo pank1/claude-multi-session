@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0
+
+**Switching no longer ends your sessions by default — and now tells you the truth about what a
+switch does and does not change.**
+
+Measured on a running session: an inotify watch on the credentials file recorded zero reads over
+75 seconds of heavy use, while firing immediately for another process reading the same file. A
+Claude Code session reads its sign-in once, at startup, and keeps it in memory. It does not
+notice a swap — it carries on against the account it started with, and keeps spending that
+account's quota.
+
+- **New default `new-sessions`:** swap the sign-in, leave running sessions alone, and say how
+  many are still on the previous account and still spending its quota. `reload` and `kill` are
+  still there for forcing the point.
+- **A switch is verified before it is called done.** The credential store is read back and
+  compared; if the write did not take, the previous sign-in is restored and the switch is
+  reported as failed rather than as success.
+- **Stand-in names are replaced on startup.** "Account 1" could never be renamed, because the
+  rename only ran during an identity lookup and that lookup only runs for accounts with no
+  identity. The account you use every day sitting under a generic name, among a column of
+  addresses, is its own source of confusion.
+
 ## 0.3.1
 
 Fixes accounts appearing healthy when they are not, and switches that seemed to do nothing.

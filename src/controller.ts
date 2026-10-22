@@ -29,7 +29,7 @@ export interface MultiSessionSettings {
   policy: PolicySettings;
   failoverEnabled: boolean;
   failoverCooldownMinutes: number;
-  restartStrategy: 'reload' | 'kill' | 'none';
+  restartStrategy: 'new-sessions' | 'reload' | 'kill' | 'none';
   restartGraceSeconds: number;
   protectInvokingSession: boolean;
   machineName: string;
@@ -145,7 +145,7 @@ export class Controller implements vscode.Disposable {
       policy,
       failoverEnabled: c.get('claudeMultiSession.failover.enabled', false),
       failoverCooldownMinutes: c.get('claudeMultiSession.failover.cooldownMinutes', 10),
-      restartStrategy: c.get<'reload' | 'kill' | 'none'>('claudeMultiSession.restartStrategy', 'reload'),
+      restartStrategy: c.get<'new-sessions' | 'reload' | 'kill' | 'none'>('claudeMultiSession.restartStrategy', 'new-sessions'),
       restartGraceSeconds: c.get('claudeMultiSession.restartGraceSeconds', 3),
       protectInvokingSession: c.get('claudeMultiSession.protectInvokingSession', true),
       machineName: c.get('claudeMultiSession.machineName', '')?.trim() || machineName(),
@@ -163,6 +163,8 @@ export class Controller implements vscode.Disposable {
 
   async initialize(): Promise<void> {
     await this.store.load();
+    const renamed = await this.store.adoptIdentityLabels();
+    if (renamed.length > 0) this.log.info(`renamed ${renamed.length} stand-in label(s) to their address`);
     await this.passphrase.restore();
     await this.reconcileCurrentLogin();
     this.restartTimers();
@@ -514,7 +516,25 @@ export class Controller implements vscode.Disposable {
         this.log.info(`could not verify ${profile.label} before switching (${check.reason}); switching anyway`);
       }
 
+      // Keep the outgoing sign-in so a write that does not take can be undone.
+      const previousCredentials = current;
       await this.credentials.write(profile.credentials);
+
+      // Prove the write landed before calling the switch done. Writing to a
+      // keychain, a file another process is rewriting, or a read-only home can
+      // all fail in ways that leave the old sign-in in place, and reporting
+      // success then is what makes a switch look like it silently did nothing.
+      const readBack = await this.credentials.read();
+      if (!readBack || !sameLogin(readBack, profile.credentials)) {
+        if (previousCredentials) {
+          await this.credentials.write(previousCredentials).catch(() => undefined);
+        }
+        return {
+          ok: false,
+          message: `The switch to “${profile.label}” did not take: the credentials on this machine still name the previous account. Nothing was changed.`,
+        };
+      }
+
       await this.store.setActive(profile.id);
       const ended = await this.restartSessions();
       await this.pushIfAuto(`switched to ${profile.label}`);
@@ -535,6 +555,14 @@ export class Controller implements vscode.Disposable {
       if (ended.protectedOwnWindow > 0) {
         pieces.push(
           ` Sessions in this window were left alone, so they stay on the previous account until you reopen them.`,
+        );
+      }
+      if (ended.carriedOn > 0) {
+        const previousLabel = previousId ? (this.store.get(previousId)?.label ?? 'the previous account') : 'the previous account';
+        pieces.push(
+          ` New sessions will use it. ${ended.carriedOn} already running ${
+            ended.carriedOn === 1 ? 'stays' : 'stay'
+          } on ${previousLabel} and keep${ended.carriedOn === 1 ? 's' : ''} spending its quota until restarted.`,
         );
       }
       const detail = pieces.join('');
@@ -563,11 +591,11 @@ export class Controller implements vscode.Disposable {
     endedOtherWindows: number;
     endedOwnWindow: number;
     protectedOwnWindow: number;
+    /** Left running on the previous account, and still spending its quota. */
+    carriedOn: number;
   }> {
     const settings = this.settings();
-    if (settings.restartStrategy === 'none') {
-      return { reload: false, endedOtherWindows: 0, endedOwnWindow: 0, protectedOwnWindow: 0 };
-    }
+    const leaveAlone = settings.restartStrategy === 'new-sessions' || settings.restartStrategy === 'none';
 
     let sessions: ClaudeSession[] = [];
     try {
@@ -579,6 +607,23 @@ export class Controller implements vscode.Disposable {
         endedOtherWindows: 0,
         endedOwnWindow: 0,
         protectedOwnWindow: 0,
+        carriedOn: 0,
+      };
+    }
+
+    // A session that is already running read its token at startup and keeps it
+    // in memory — measured: in 75 seconds of a busy session the credentials
+    // file was never opened. So it does not pick up a swap; it carries on
+    // against the account it started with, spending that account's quota. The
+    // default leaves them be and says how many there are, rather than killing
+    // work to force the point.
+    if (leaveAlone) {
+      return {
+        reload: false,
+        endedOtherWindows: 0,
+        endedOwnWindow: 0,
+        protectedOwnWindow: 0,
+        carriedOn: sessions.length,
       };
     }
 
@@ -607,6 +652,7 @@ export class Controller implements vscode.Disposable {
       endedOwnWindow: killOwn.length,
       // Only worth mentioning when nothing else will bring them back.
       protectedOwnWindow: settings.restartStrategy === 'kill' ? mine.length - killOwn.length : 0,
+      carriedOn: 0,
     };
   }
 
