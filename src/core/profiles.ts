@@ -234,6 +234,17 @@ export class ProfileStore {
   }
 }
 
+/**
+ * True for a label that was only ever a stand-in, given before the account's
+ * identity was known. Those get replaced the moment the real address arrives —
+ * otherwise the account you use every day stays filed under "Account 1" while
+ * every other row shows an email, which is how two accounts start looking like
+ * each other.
+ */
+export function isPlaceholderLabel(label: string): boolean {
+  return /^account \d+$/i.test(label.trim());
+}
+
 /** Label used when an account is captured: the email, else the plan, else a number. */
 export function suggestLabel(identity: AccountIdentity | undefined, fallbackIndex: number): string {
   if (identity?.email) return identity.email;

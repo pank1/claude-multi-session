@@ -58,8 +58,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return;
     }
     const result = await claudeMultiSession.switchTo(accountId);
-    if (result.ok) void vscode.window.showInformationMessage(result.message);
-    else void vscode.window.showWarningMessage(result.message);
+    if (result.ok) {
+      void vscode.window.showInformationMessage(result.message);
+      return;
+    }
+    // A switch refused because the sign-in is revoked has an obvious next step.
+    const choice = await vscode.window.showWarningMessage(
+      result.message,
+      ...(result.revoked ? ['Sign in again'] : []),
+    );
+    if (choice === 'Sign in again') await signInAgain(claudeMultiSession, profile);
   });
 
   register('claudeMultiSession.refresh', async () => {

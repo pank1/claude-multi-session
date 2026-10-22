@@ -14,10 +14,10 @@ import {
   prefersCushion,
   shouldFailover,
 } from './core/policy';
-import { ProfileStore, machineName, suggestLabel } from './core/profiles';
+import { ProfileStore, isPlaceholderLabel, machineName, suggestLabel } from './core/profiles';
 import { ClaudeSession, discoverSessions, terminate } from './core/sessions';
 import { LockedError, SyncManager } from './core/sync';
-import { AccountView, PolicySettings, PresenceEntry, Profile } from './core/types';
+import { AccountIdentity, AccountView, PolicySettings, PresenceEntry, Profile, StoredCredentials } from './core/types';
 import { PassphraseHolder } from './ui/passphrase';
 
 export interface MultiSessionSettings {
@@ -46,7 +46,15 @@ export interface SwitchResult {
   ok: boolean;
   message: string;
   endedSessions?: number;
+  /** The target's sign-in is revoked; the caller should offer to sign in again. */
+  revoked?: boolean;
 }
+
+/** What a live check of a stored sign-in found. */
+export type LoginCheck =
+  | { state: 'alive'; identity: AccountIdentity }
+  | { state: 'revoked' }
+  | { state: 'unknown'; reason: string };
 
 /**
  * Everything that is not drawing: timers, account switching, failover, sync.
@@ -345,6 +353,26 @@ export class Controller implements vscode.Disposable {
     await vscode.commands.executeCommand('setContext', 'claudeMultiSession.locked', this.passphrase.locked);
   }
 
+  /**
+   * Asks Anthropic who a stored sign-in belongs to.
+   *
+   * This is the only thing that may clear `needsSignIn`: an unexpired token
+   * says nothing about a valid one, because signing out revokes a token that
+   * has hours left on the clock. Clearing the flag on anything less than a
+   * successful answer is what let dead accounts keep presenting as healthy.
+   * Being offline is not evidence either way, hence `unknown`.
+   */
+  private async verifyLogin(credentials: StoredCredentials): Promise<LoginCheck> {
+    try {
+      return { state: 'alive', identity: await this.api.profile(credentials.claudeAiOauth.accessToken) };
+    } catch (error) {
+      if (error instanceof ApiError && (error.kind === 'unauthorized' || error.kind === 'forbidden')) {
+        return { state: 'revoked' };
+      }
+      return { state: 'unknown', reason: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   // --------------------------------------------------------------- capture
 
   /** Saves whatever login Claude Code is holding right now as an account. */
@@ -359,33 +387,52 @@ export class Controller implements vscode.Disposable {
       return undefined;
     }
 
-    const existing = this.store.findByLogin(current);
+    // Ask who this sign-in actually belongs to before filing it anywhere. The
+    // answer decides the label, and whether the account is usable at all: a
+    // token can be unexpired and still revoked, and saving one as healthy is
+    // what made two accounts behave like each other.
+    const check = await this.verifyLogin(current);
+    const identity = check.state === 'alive' ? check.identity : undefined;
+
+    const existing = this.store.findByLogin(current) ?? this.store.findByIdentity(identity);
     if (existing) {
-      await this.store.update(existing.id, { credentials: current, needsSignIn: false });
+      await this.store.update(existing.id, {
+        credentials: current,
+        identity: identity ?? existing.identity,
+        ...(check.state === 'alive' ? { needsSignIn: false } : {}),
+        ...(check.state === 'revoked' ? { needsSignIn: true } : {}),
+        ...(identity?.email && isPlaceholderLabel(existing.label) ? { label: identity.email } : {}),
+      });
       await this.store.setActive(existing.id);
-      if (!options.silent) {
-        void vscode.window.showInformationMessage(`Already saved as “${existing.label}”. Set as the account in use.`);
-      }
-      this.changeEmitter.fire();
-      return existing;
-    }
-
-    let identity;
-    try {
-      identity = await this.api.profile(current.claudeAiOauth.accessToken);
-    } catch (error) {
-      this.log.debug(`could not read the account profile while capturing: ${String(error)}`);
-    }
-
-    const byIdentity = this.store.findByIdentity(identity);
-    if (byIdentity) {
-      await this.store.update(byIdentity.id, { credentials: current, identity, needsSignIn: false });
-      await this.store.setActive(byIdentity.id);
       this.changeEmitter.fire();
       if (!options.silent) {
-        void vscode.window.showInformationMessage(`Updated the saved sign-in for “${byIdentity.label}”.`);
+        if (check.state === 'revoked') {
+          void vscode.window
+            .showWarningMessage(
+              `“${existing.label}” is signed in here, but Anthropic has revoked that sign-in. It has to be signed in again.`,
+              'Sign in again',
+            )
+            .then((choice) => {
+              if (choice === 'Sign in again') {
+                void vscode.commands.executeCommand('claudeMultiSession.signInAgain', existing.id);
+              }
+            });
+        } else {
+          void vscode.window.showInformationMessage(
+            `Saved sign-in for “${existing.label}” and set it as the account in use.`,
+          );
+        }
       }
-      return byIdentity;
+      return this.store.get(existing.id) ?? existing;
+    }
+
+    if (check.state === 'revoked') {
+      if (!options.silent) {
+        void vscode.window.showWarningMessage(
+          'That sign-in has already been revoked by Anthropic, so there is nothing worth saving. Sign in again first.',
+        );
+      }
+      return undefined;
     }
 
     const profile = await this.store.add({
@@ -440,6 +487,31 @@ export class Controller implements vscode.Disposable {
         await this.store.setActive(profile.id);
         this.changeEmitter.fire();
         return { ok: true, message: `Already using “${profile.label}”.` };
+      }
+
+      // Prove the target works before overwriting the live credentials with it.
+      // Writing a revoked token signs Claude Code out of a working account and
+      // into a dead one, which looks like "the switch did nothing".
+      const check = await this.verifyLogin(profile.credentials);
+      if (check.state === 'revoked') {
+        await this.store.update(profile.id, { needsSignIn: true });
+        this.changeEmitter.fire();
+        return {
+          ok: false,
+          revoked: true,
+          message: `“${profile.label}” has been signed out by Anthropic, so it cannot be switched to. Nothing was changed — sign it in again first.`,
+        };
+      }
+      if (check.state === 'alive') {
+        await this.store.update(profile.id, {
+          identity: check.identity,
+          needsSignIn: false,
+          ...(check.identity.email && isPlaceholderLabel(profile.label)
+            ? { label: check.identity.email }
+            : {}),
+        });
+      } else {
+        this.log.info(`could not verify ${profile.label} before switching (${check.reason}); switching anyway`);
       }
 
       await this.credentials.write(profile.credentials);

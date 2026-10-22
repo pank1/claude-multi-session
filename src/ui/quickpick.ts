@@ -74,8 +74,15 @@ export async function showAccountSwitcher(claudeMultiSession: Controller): Promi
       return;
     }
     const result = await claudeMultiSession.switchTo(chosen.accountId);
-    if (result.ok) void vscode.window.showInformationMessage(result.message);
-    else void vscode.window.showWarningMessage(result.message);
+    if (result.ok) {
+      void vscode.window.showInformationMessage(result.message);
+      return;
+    }
+    const choice = await vscode.window.showWarningMessage(
+      result.message,
+      ...(result.revoked ? ['Sign in again'] : []),
+    );
+    if (choice === 'Sign in again') await signInAgain(claudeMultiSession, profile);
   }
 }
 

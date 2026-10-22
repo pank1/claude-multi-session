@@ -128,3 +128,21 @@ the official extension's bundled binary, in a terminal, and watch the credential
 result. Pre-filling the address is the difference between "sign in again" and "sign in again,
 as which one?" — and since the sign-in page does not force the choice, the account that comes
 back is checked against the one asked for.
+
+**D-19 — Only a successful call may clear `needsSignIn`, and a switch proves the target first.**
+Measured on the first real fleet (2026-10-22): two accounts were revoked server-side yet carried
+`needsSignIn: false`, because `captureCurrent` cleared the flag on any token it matched, without
+asking whether that token still worked. Switching to one then wrote a dead credential over a live
+one — Claude Code was signed out of a working account into a revoked one, which presents as "the
+switch did nothing" and as two accounts behaving like each other.
+
+Both halves are fixed by the same rule: an unexpired token is not a valid one (D-16), so only a
+successful `/api/oauth/profile` call is evidence. `verifyLogin` returns alive, revoked or
+unknown — being offline is not evidence either way and never clears or sets the flag. `switchTo`
+verifies before writing and leaves the live credentials untouched when the target is revoked.
+
+**D-20 — A stand-in label is replaced the moment the identity is known.**
+The first account adopted at install is named "Account N" before anything is known about it, and
+that name used to stick for ever. The account in daily use showing as "Account 1" while every
+other row showed an email is how two accounts start to look like each other. Any label matching
+`Account <n>` is now replaced by the address as soon as a profile lookup returns one.

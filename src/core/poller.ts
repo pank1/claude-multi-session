@@ -2,7 +2,7 @@ import { ApiClient, ApiError } from './api';
 import { CredentialStore, accessTokenExpired, refreshTokenExpired } from './credstore';
 import { estimateSnapshot, measureLocalUsage, updateCalibration } from './estimate';
 import { Logger, nullLogger, blurEmail, redact } from './log';
-import { ProfileStore } from './profiles';
+import { ProfileStore, isPlaceholderLabel } from './profiles';
 import { minutesSince } from './time';
 import { Profile, UsageSnapshot } from './types';
 import { snapshotFromUsage } from './usage';
@@ -183,7 +183,12 @@ export class UsagePoller {
   private async fillIdentity(profile: Profile, accessToken: string): Promise<void> {
     try {
       const identity = await this.deps.api.profile(accessToken);
-      await this.deps.store.update(profile.id, { identity });
+      await this.deps.store.update(profile.id, {
+        identity,
+        // A stand-in name given before the account was identified is replaced
+        // the moment the real address is known.
+        ...(identity.email && isPlaceholderLabel(profile.label) ? { label: identity.email } : {}),
+      });
     } catch (error) {
       this.log.debug(`identity lookup failed: ${redact(error)}`);
     }

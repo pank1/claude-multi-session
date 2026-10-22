@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1
+
+Fixes accounts appearing healthy when they are not, and switches that seemed to do nothing.
+
+- **A revoked account can no longer present as working.** Saving a sign-in used to clear the
+  "needs signing in" flag on any token it recognised, without checking that the token still
+  worked — and a token stays unexpired for hours after signing out revokes it. Only a
+  successful call to Anthropic clears the flag now.
+- **Switching proves the account first.** It used to write the stored credentials over your live
+  ones and hope; if the target was revoked, that signed Claude Code out of a working account
+  into a dead one. The target is checked before anything is written, and a revoked one leaves
+  your current sign-in untouched and offers to sign in again.
+- Being offline is treated as "cannot tell", never as proof either way.
+- **"Account 1" renames itself.** The first account adopted at install is named before anything
+  is known about it; it now takes its address as soon as one is available. An account in daily
+  use sitting under a generic name, while every other row showed an email, is how two of them
+  start to look alike.
+
 ## 0.3.0
 
 - **Choosing a revoked account takes you straight to Anthropic sign-in**, with that account's
