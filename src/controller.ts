@@ -74,6 +74,7 @@ export class Controller implements vscode.Disposable {
   private switching = false;
   private noCandidateNoticeAt = 0;
   private lockedNoticeAt = 0;
+  private lockedNoticeShown = false;
 
   constructor(
     readonly context: vscode.ExtensionContext,
@@ -88,7 +89,7 @@ export class Controller implements vscode.Disposable {
       logger: log,
       machineLabel: this.settings().machineName,
       settings: () => this.settings().sync,
-      getPassphrase: (purpose) => this.passphrase.get(purpose),
+      getPassphrase: (purpose, options) => this.passphrase.get(purpose, options),
     });
 
     this.poller = new UsagePoller({
@@ -106,11 +107,15 @@ export class Controller implements vscode.Disposable {
           staleAfterMinutes: settings.staleAfterMinutes,
         };
       },
+      // Both run on a timer, so neither may prompt (see SyncIntent).
       pullSync: async () => {
+        if (this.noteIfLocked('sync pull')) return;
         await this.sync.pull({ purpose: 'fetch the newest sign-in for an account' });
       },
       pushSync: async (reason) => {
-        if (this.settings().sync.autoPush) await this.sync.push(reason);
+        if (!this.settings().sync.autoPush) return;
+        if (this.noteIfLocked(`sync push (${reason})`)) return;
+        await this.sync.push(reason);
       },
     });
 
@@ -119,6 +124,10 @@ export class Controller implements vscode.Disposable {
         if (!event.affectsConfiguration('claudeMultiSession')) return;
         this.restartTimers();
         this.changeEmitter.fire();
+      }),
+      // Unlocked again: say so again if it is ever locked after this.
+      this.passphrase.onDidChange(() => {
+        if (!this.passphrase.locked) this.lockedNoticeShown = false;
       }),
     );
   }
@@ -317,7 +326,7 @@ export class Controller implements vscode.Disposable {
   async refresh(options: { force?: boolean } = {}): Promise<void> {
     try {
       await this.reconcileCurrentLogin();
-      if (this.sync.enabled && this.sync.dueForPull() && !this.passphrase.locked) {
+      if (this.sync.enabled && this.sync.dueForPull() && !this.noteIfLocked('sync pull')) {
         try {
           await this.sync.pull();
         } catch (error) {
@@ -767,10 +776,7 @@ export class Controller implements vscode.Disposable {
   private async pushIfAuto(reason: string): Promise<void> {
     const settings = this.settings();
     if (!settings.sync.enabled || !settings.sync.autoPush) return;
-    if (this.passphrase.locked) {
-      this.log.info(`not pushing (${reason}): Controller is locked`);
-      return;
-    }
+    if (this.noteIfLocked(`sync push (${reason})`)) return;
     try {
       await this.sync.push(reason);
     } catch (error) {
@@ -779,12 +785,45 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
+   * True when sync needs the passphrase and does not have it — in which case
+   * the caller should skip, because it is background work and background work
+   * never asks (D-23).
+   *
+   * Says so once per lock, as a notification in the corner with the one button
+   * that fixes it. The padlock in the status bar is the standing reminder after
+   * that; repeating the notification every poll cycle would be the same
+   * interruption the prompt was.
+   */
+  private noteIfLocked(what: string): boolean {
+    if (!this.sync.enabled || !this.passphrase.locked) return false;
+    this.log.info(`${what}: locked, skipped`);
+    if (this.lockedNoticeShown) return true;
+    this.lockedNoticeShown = true;
+
+    void vscode.window
+      .showWarningMessage(
+        'Claude Multi Session is locked, so your accounts are not syncing between machines. Everything else works as usual.',
+        'Unlock',
+        'Turn sync off',
+      )
+      .then(async (choice) => {
+        if (choice === 'Unlock') await vscode.commands.executeCommand('claudeMultiSession.unlock');
+        if (choice === 'Turn sync off') {
+          await vscode.workspace
+            .getConfiguration()
+            .update('claudeMultiSession.sync.enabled', false, vscode.ConfigurationTarget.Global);
+        }
+      });
+    return true;
+  }
+
+  /**
    * Logs, and only surfaces something the user can act on. A failing usage
    * lookup must never produce a toast (acceptance A4).
    */
   reportQuietly(what: string, error: unknown): void {
     if (error instanceof LockedError) {
-      this.log.info(`${what}: locked, skipped`);
+      if (!this.noteIfLocked(what)) this.log.info(`${what}: locked, skipped`);
       return;
     }
     if (error instanceof BundleError && error.kind === 'passphrase') {

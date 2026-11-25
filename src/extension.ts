@@ -150,7 +150,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     try {
       const result = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: 'Pulling accounts' },
-        () => claudeMultiSession.sync.pull({ purpose: 'read your synced accounts' }),
+        () => claudeMultiSession.sync.pull({ purpose: 'read your synced accounts', interactive: true }),
       );
       void vscode.window.showInformationMessage(result.message);
       await claudeMultiSession.refresh({ force: true });
@@ -163,7 +163,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     try {
       const result = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: 'Pushing accounts' },
-        () => claudeMultiSession.sync.push('manual push'),
+        () => claudeMultiSession.sync.push('manual push', { interactive: true }),
       );
       void vscode.window.showInformationMessage(result.message);
     } catch (error) {
@@ -174,6 +174,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   register('claudeMultiSession.unlock', async () => {
     const passphraseValue = await passphrase.get('unlock your synced accounts');
     if (!passphraseValue) return;
+    await offerToRemember(claudeMultiSession, passphrase);
     await vscode.commands.executeCommand('claudeMultiSession.syncPull');
   });
 
@@ -225,6 +226,36 @@ async function maybeGreet(claudeMultiSession: Controller): Promise<void> {
   );
   if (choice === 'Open walkthrough') await vscode.commands.executeCommand('claudeMultiSession.openWalkthrough');
   if (choice === 'Add another account') await vscode.commands.executeCommand('claudeMultiSession.addAccount');
+}
+
+/**
+ * Offered once, straight after a successful unlock.
+ *
+ * Letting the keychain hold the passphrase is the only thing that stops this
+ * machine asking for it again, so the moment it has just been typed is the one
+ * moment the offer is useful. Asked once ever, then never again.
+ */
+async function offerToRemember(
+  claudeMultiSession: Controller,
+  passphrase: PassphraseHolder,
+): Promise<void> {
+  const configuration = vscode.workspace.getConfiguration();
+  if (configuration.get<boolean>('claudeMultiSession.sync.rememberPassphrase', false)) return;
+  if (claudeMultiSession.store.state.rememberOffered) return;
+  await claudeMultiSession.store.patchState({ rememberOffered: true });
+
+  const choice = await vscode.window.showInformationMessage(
+    'Remember this passphrase in this machine’s keychain, so Claude Multi Session stops asking for it?',
+    'Remember it',
+    'Keep asking',
+  );
+  if (choice !== 'Remember it') return;
+  await configuration.update(
+    'claudeMultiSession.sync.rememberPassphrase',
+    true,
+    vscode.ConfigurationTarget.Global,
+  );
+  await passphrase.persist();
 }
 
 async function resolveAccountId(

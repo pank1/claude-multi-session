@@ -27,11 +27,28 @@ export interface SyncSettings {
 export interface SyncDeps {
   store: ProfileStore;
   settings: () => SyncSettings;
-  /** Resolves to undefined when the user declines to unlock. */
-  getPassphrase: (purpose: string) => Promise<string | undefined>;
+  /**
+   * Resolves to undefined when the passphrase is not available — either the
+   * user declined to unlock, or `prompt` was false and nothing was cached.
+   */
+  getPassphrase: (purpose: string, options: { prompt: boolean }) => Promise<string | undefined>;
   machineLabel: string;
   logger?: Logger;
   env?: NodeJS.ProcessEnv;
+}
+
+/**
+ * Whether this sync was asked for by the user.
+ *
+ * Only an interactive sync may put a passphrase box on the screen. Background
+ * sync — the poll timer, auto-push after a change, a token rotation — runs
+ * every few minutes whether or not anyone is looking at VS Code, so a
+ * background prompt is a focus-stealing input box over whatever you were doing,
+ * again and again for as long as you keep dismissing it. Background sync
+ * instead stops at the lock and leaves the padlock in the status bar.
+ */
+export interface SyncIntent {
+  interactive?: boolean;
 }
 
 export interface PullOutcome {
@@ -77,7 +94,7 @@ export class SyncManager {
   }
 
   /** Pulls the bundle and folds it into the local accounts. */
-  async pull(options: { purpose?: string } = {}): Promise<PullOutcome> {
+  async pull(options: SyncIntent & { purpose?: string } = {}): Promise<PullOutcome> {
     if (!this.enabled) return { added: [], updated: [], unchanged: true, message: 'Sync is off.' };
     if (this.busy) return { added: [], updated: [], unchanged: true, message: 'Sync is already running.' };
     this.busy = true;
@@ -94,7 +111,9 @@ export class SyncManager {
           message: 'The sync repository has no accounts in it yet.',
         };
       }
-      const passphrase = await this.deps.getPassphrase(options.purpose ?? 'read your synced accounts');
+      const passphrase = await this.deps.getPassphrase(options.purpose ?? 'read your synced accounts', {
+        prompt: options.interactive === true,
+      });
       if (!passphrase) throw new LockedError();
 
       const payload = parseBundle(await decryptBundle(armoured, passphrase));
@@ -126,11 +145,19 @@ export class SyncManager {
   }
 
   /** Merges the remote copy, then writes and pushes the combined bundle. */
-  async push(reason: string): Promise<PushOutcome> {
+  async push(reason: string, options: SyncIntent = {}): Promise<PushOutcome> {
     if (!this.enabled) return { pushed: false, message: 'Sync is off.' };
     if (this.busy) return { pushed: false, message: 'Sync is already running.' };
     this.busy = true;
     try {
+      // Before any git work: nothing can be written without the passphrase, so
+      // a locked machine should not clone and fetch on every poll cycle only to
+      // stop at the same place.
+      const passphrase = await this.deps.getPassphrase('write your synced accounts', {
+        prompt: options.interactive === true,
+      });
+      if (!passphrase) throw new LockedError();
+
       const git = this.git();
       await git.ensureRepo();
       await git.fetch().catch((error: unknown) => {
@@ -138,9 +165,6 @@ export class SyncManager {
         if (error instanceof GitError && error.kind === 'offline') throw error;
         this.log.debug(`fetch before push: ${redact(error)}`);
       });
-
-      const passphrase = await this.deps.getPassphrase('write your synced accounts');
-      if (!passphrase) throw new LockedError();
 
       const armoured = await git.showRemote(BUNDLE_FILE);
       if (armoured) {

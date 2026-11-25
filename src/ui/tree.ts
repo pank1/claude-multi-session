@@ -37,12 +37,22 @@ export class AccountsTree implements vscode.TreeDataProvider<Node>, vscode.Dispo
         return this.windowItem(node);
       case 'sync': {
         const item = new vscode.TreeItem(this.syncLine, vscode.TreeItemCollapsibleState.None);
-        item.iconPath = new vscode.ThemeIcon(this.claudeMultiSession.sync.enabled ? 'cloud' : 'cloud-offline');
+        // Locked is the one state with a different next step, and since nothing
+        // asks for the passphrase on its own any more (D-23), this line and the
+        // padlock in the status bar are how you get back to it.
+        const locked = this.claudeMultiSession.sync.enabled && this.claudeMultiSession.passphrase.locked;
+        item.iconPath = new vscode.ThemeIcon(
+          locked ? 'lock' : this.claudeMultiSession.sync.enabled ? 'cloud' : 'cloud-offline',
+        );
         item.contextValue = 'sync';
-        item.command = {
-          command: this.claudeMultiSession.sync.enabled ? 'claudeMultiSession.syncPull' : 'claudeMultiSession.syncSetup',
-          title: this.claudeMultiSession.sync.enabled ? 'Pull accounts from sync' : 'Set up sync',
-        };
+        item.command = locked
+          ? { command: 'claudeMultiSession.unlock', title: 'Unlock' }
+          : {
+              command: this.claudeMultiSession.sync.enabled
+                ? 'claudeMultiSession.syncPull'
+                : 'claudeMultiSession.syncSetup',
+              title: this.claudeMultiSession.sync.enabled ? 'Pull accounts from sync' : 'Set up sync',
+            };
         return item;
       }
       case 'info': {

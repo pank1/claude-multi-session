@@ -101,7 +101,9 @@ export async function runSyncSetup(claudeMultiSession: Controller): Promise<void
       try {
         if (role.value === 'create') {
           progress.report({ message: 'encrypting and pushing your accounts…' });
-          const result = await claudeMultiSession.sync.push('first push from this machine');
+          const result = await claudeMultiSession.sync.push('first push from this machine', {
+            interactive: true,
+          });
           void vscode.window.showInformationMessage(
             result.pushed
               ? `Sync is on. ${claudeMultiSession.store.list().length} account(s) are now in ${repository.trim()}.`
@@ -109,7 +111,10 @@ export async function runSyncSetup(claudeMultiSession: Controller): Promise<void
           );
         } else {
           progress.report({ message: 'pulling and decrypting…' });
-          const result = await claudeMultiSession.sync.pull({ purpose: 'open the synced accounts' });
+          const result = await claudeMultiSession.sync.pull({
+            purpose: 'open the synced accounts',
+            interactive: true,
+          });
           void vscode.window.showInformationMessage(result.message);
         }
       } catch (error) {
@@ -131,6 +136,8 @@ export async function runSyncSetup(claudeMultiSession: Controller): Promise<void
   );
 
   if (!configuration.get<boolean>('claudeMultiSession.sync.rememberPassphrase', false)) {
+    // Setup asks here, so the unlock command does not ask the same thing later.
+    await claudeMultiSession.store.patchState({ rememberOffered: true });
     const remember = await vscode.window.showInformationMessage(
       'Should this machine remember the passphrase in its keychain? Needed if you want auto-failover to work while you are away.',
       'Remember it',

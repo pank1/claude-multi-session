@@ -104,6 +104,8 @@ export interface MultiSessionState {
   lastFailoverAt?: string;
   /** Shown once, then never again. */
   firstRunShown?: boolean;
+  /** The "shall I remember the passphrase?" offer, made once after an unlock. */
+  rememberOffered?: boolean;
   /**
    * A switch that ends in a window reload loses its notification, so the text
    * is parked here and shown when the window comes back.

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.1
+
+**The passphrase box no longer appears on its own.**
+
+Sync pulled on a timer, pushed after every change and pushed again on every token rotation — and
+each of those asked for the passphrase when it did not have one. On a locked machine that was an
+input box in the middle of the window every poll cycle, over whatever you were typing.
+
+- **Only a sync you asked for may prompt.** The pull and push commands and sync setup still ask.
+  Everything on a timer now stops at the lock instead.
+- **Being locked is said once**, as a notification in the corner with `Unlock` and `Turn sync
+  off` on it. After that the padlock in the status bar and the sync line in the Accounts panel
+  are the reminder — and both now click through to Unlock.
+- **Offered once: let the keychain hold it.** Straight after you unlock, so you need not be asked
+  again on this machine.
+- A locked machine no longer clones and fetches the sync repository every few minutes only to
+  stop at the same place.
+
 ## 0.4.0
 
 **Switching no longer ends your sessions by default — and now tells you the truth about what a

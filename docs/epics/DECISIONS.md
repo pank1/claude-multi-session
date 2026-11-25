@@ -162,6 +162,24 @@ The default is now `new-sessions`: swap the sign-in, leave running sessions alon
 many are still on the previous account. Killing work to force the point is available
 (`reload`, `kill`) but is no longer what happens by default.
 
+**D-23 — Background sync never asks for the passphrase.**
+Sync pulled on a timer, pushed after any change, and pushed again whenever a token
+rotated — and each of those asked for the passphrase if it did not have one. The ask is a
+focus-stealing input box in the middle of the window, so a locked machine put one there every
+poll cycle, over whatever was being typed, for as long as the user kept dismissing it. Reported
+2026-11-25: "this popping up the whole time is annoying".
+
+`SyncIntent.interactive` now splits the two cases. Only a sync the user asked for — the pull and
+push commands, and setup — may prompt. Background sync asks with `prompt: false`, gets nothing,
+and stops. Being locked is said **once per lock**, as a notification in the corner with `Unlock`
+and `Turn sync off` on it; after that the padlock in the status bar and the sync line in the
+panel (both now click through to Unlock) are the standing reminder, because a notification every
+five minutes is the same interruption in a quieter typeface.
+
+A passphrase that is held in the OS keychain is asked for once ever, so the unlock command offers
+that — once — straight after the passphrase has been typed, which is the only moment the offer is
+worth anything.
+
 **D-22 — A switch is not done until the credential store says so.**
 `switchTo` wrote the new credentials and reported success. A write that silently does not take
 — a keychain refusal, a read-only home, another process rewriting the file — then reads as "the
